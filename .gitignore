@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Python virtual environment
+venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# dbt
+dbt_packages/
+dbt_project/target/
+dbt_project/logs/
+.dbt/
+
+# Archives
+*.zip
+
+# macOS
+.DS_Store
