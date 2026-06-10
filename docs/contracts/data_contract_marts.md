@@ -22,9 +22,15 @@ One row per municipality per snapshot year.
 |---|---|---|
 | `municipality_code` | VARCHAR | 4-digit SCB municipality code (primary key with `year`) |
 | `municipality_name` | VARCHAR | Municipality name |
+| `county_code` | VARCHAR | 2-digit SCB county (län) code, derived from `municipality_code` |
 | `county_name` | VARCHAR | County (län) name, derived from `county_code` |
+| `population` | FLOAT | Total population |
 | `population_category` | VARCHAR | One of `'small'`, `'medium'`, `'large'`, based on `population_total` tertiles/thresholds |
 | `year` | INTEGER | Snapshot year (`2021`) |
+
+> **2026-06-10 (Agent 3):** Added `county_code` and `population` (additive
+> columns, not in the original contract) for dashboard convenience. See
+> `docs/agents/agent3_dbt.md` status log.
 
 ## `fct_opportunity_scores`
 

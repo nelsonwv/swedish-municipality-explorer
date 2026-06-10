@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: int_municipality_profiles
+    description: >
+      One row per municipality for 2021, joining all five staging datasets
+      and deriving composite metrics (employment gap, post-secondary
+      education share, out-commuting rate, and population category) used by
+      the marts layer.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: county_code
+        description: 2-digit SCB county (län) code, derived from municipality_code.
+        tests:
+          - not_null
+      - name: population_total
+        description: Total population (region_of_birth = 'total', sex = 'total').
+        tests:
+          - not_null
+      - name: median_income
+        description: >
+          Median disposable income, in number of price base amounts
+          (prisbasbelopp) -- see stg_income for unit details.
+      - name: employment_rate_total
+        description: Gainful employment rate (%) for the total population.
+      - name: employment_rate_foreign_born
+        description: Gainful employment rate (%) for region_of_birth = 'born_abroad'.
+      - name: employment_gap
+        description: employment_rate_total - employment_rate_foreign_born (percentage points).
+      - name: pct_post_secondary
+        description: >
+          Share of the population with post-secondary education (%),
+          computed as stg_education post-secondary count divided by
+          population_total.
+      - name: out_commute_rate
+        description: >
+          Out-commuting rate (%): commuters leaving the municipality
+          (stg_commuting count) as a share of the estimated employed
+          population (population_total * employment_rate_total).
+      - name: population_category
+        description: One of 'small', 'medium', 'large', based on population_total thresholds.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['small', 'medium', 'large']
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null

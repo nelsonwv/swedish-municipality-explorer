@@ -1,0 +1,25 @@
+{% macro county_name(county_code_column) -%}
+case {{ county_code_column }}
+    when '01' then 'Stockholm'
+    when '03' then 'Uppsala'
+    when '04' then 'Södermanland'
+    when '05' then 'Östergötland'
+    when '06' then 'Jönköping'
+    when '07' then 'Kronoberg'
+    when '08' then 'Kalmar'
+    when '09' then 'Gotland'
+    when '10' then 'Blekinge'
+    when '12' then 'Skåne'
+    when '13' then 'Halland'
+    when '14' then 'Västra Götaland'
+    when '17' then 'Värmland'
+    when '18' then 'Örebro'
+    when '19' then 'Västmanland'
+    when '20' then 'Dalarna'
+    when '21' then 'Gävleborg'
+    when '22' then 'Västernorrland'
+    when '23' then 'Jämtland'
+    when '24' then 'Västerbotten'
+    when '25' then 'Norrbotten'
+end
+{%- endmacro %}

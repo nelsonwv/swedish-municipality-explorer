@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: dim_municipality
+    description: >
+      One row per municipality per snapshot year. Dashboard-ready dimension
+      table with municipality/county metadata and population category.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code (primary key with year).
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: county_code
+        description: 2-digit SCB county (län) code.
+        tests:
+          - not_null
+      - name: county_name
+        description: County (län) name, derived from county_code.
+        tests:
+          - not_null
+      - name: population
+        description: Total population.
+        tests:
+          - not_null
+      - name: population_category
+        description: One of 'small', 'medium', 'large'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['small', 'medium', 'large']
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+
+  - name: fct_opportunity_scores
+    description: >
+      One row per (municipality_code, region_of_birth, year). Normalized
+      0-100 opportunity scores across income, employment, education, and
+      mobility (commuting) dimensions, used to drive the dashboard's
+      region-of-birth filter.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - municipality_code
+              - region_of_birth
+              - year
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code (foreign key to dim_municipality).
+        tests:
+          - not_null
+      - name: region_of_birth
+        description: One of 'total', 'born_in_sweden', 'born_abroad'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['total', 'born_in_sweden', 'born_abroad']
+      - name: income_score
+        description: Normalized (0-100) median income score, min-max scaled across all municipalities.
+        tests:
+          - not_null
+      - name: employment_score
+        description: >
+          Normalized (0-100) employment rate score, min-max scaled across
+          all municipalities within each region_of_birth group.
+        tests:
+          - not_null
+      - name: education_score
+        description: Normalized (0-100) post-secondary education score, min-max scaled across all municipalities.
+        tests:
+          - not_null
+      - name: mobility_score
+        description: >
+          Normalized (0-100) mobility score: an inverse min-max scaling of
+          out_commute_rate, so lower commuting yields a higher score.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null

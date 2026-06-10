@@ -1,0 +1,168 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Landing-zone tables loaded by Agent 2 from the SCB PxWebApi v2,
+      snapshot year 2021. See docs/contracts/data_contract_raw.md.
+    schema: RAW
+    tables:
+      - name: raw_population
+      - name: raw_income
+      - name: raw_employment
+      - name: raw_education
+      - name: raw_commuting
+
+models:
+  - name: stg_population
+    description: >
+      One row per municipality with total population for 2021, cleaned and
+      typed from raw_population. No sex or region-of-birth breakdown is
+      available, so both columns default to 'total'.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+      - name: sex
+        description: Always 'total' (no sex breakdown available for this dataset).
+      - name: region_of_birth
+        description: Always 'total' (no region-of-birth breakdown available for this dataset).
+      - name: value
+        description: Population count (number of people).
+        tests:
+          - not_null
+
+  - name: stg_income
+    description: >
+      One row per municipality with median disposable income for 2021,
+      cleaned and typed from raw_income. NOTE - value is expressed in
+      number of price base amounts (prisbasbelopp), per SCB measure
+      AA0003GJ, not absolute SEK -- see docs/agents/agent3_dbt.md status log.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+      - name: sex
+        description: Always 'total' (no sex breakdown available for this dataset).
+      - name: region_of_birth
+        description: Always 'total' (no region-of-birth breakdown available for this dataset).
+      - name: value
+        description: >
+          Median disposable income, expressed in number of price base
+          amounts (prisbasbelopp).
+        tests:
+          - not_null
+
+  - name: stg_employment
+    description: >
+      One row per (municipality, region_of_birth) with the gainful
+      employment rate for 2021, cleaned and typed from raw_employment.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+      - name: sex
+        description: Always 'total' (sex_code '4' = "men and women", mapped to 'total').
+      - name: region_of_birth
+        description: One of 'total', 'born_in_sweden', 'born_abroad'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['total', 'born_in_sweden', 'born_abroad']
+      - name: value
+        description: Gainful employment rate (%).
+        tests:
+          - not_null
+
+  - name: stg_education
+    description: >
+      One row per municipality with the count of residents (all ages, both
+      sexes) holding post-secondary education (ISCED97 levels 5-7) for
+      2021, cleaned and typed from raw_education. NOTE - value is a
+      population count, not yet a percentage; it is converted to
+      pct_post_secondary in int_municipality_profiles -- see
+      docs/agents/agent3_dbt.md status log.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+      - name: sex
+        description: Always 'total' (no sex breakdown available for this dataset).
+      - name: region_of_birth
+        description: Always 'total' (no region-of-birth breakdown available for this dataset).
+      - name: value
+        description: >
+          Count of residents with post-secondary education (ISCED97 levels
+          5-7), summed across all ages and both sexes.
+        tests:
+          - not_null
+
+  - name: stg_commuting
+    description: >
+      One row per municipality with the count of residents commuting out of
+      their home municipality for work in 2021, cleaned and typed from
+      raw_commuting. NOTE - value is a count of commuters, not yet a rate;
+      it is converted to out_commute_rate in int_municipality_profiles --
+      see docs/agents/agent3_dbt.md status log.
+    columns:
+      - name: municipality_code
+        description: 4-digit SCB municipality code.
+        tests:
+          - not_null
+          - unique
+      - name: municipality_name
+        description: Municipality name.
+        tests:
+          - not_null
+      - name: year
+        description: Snapshot year (2021).
+        tests:
+          - not_null
+      - name: sex
+        description: Always 'total' (sex_code '4' = "men and women", mapped to 'total').
+      - name: region_of_birth
+        description: Always 'total' (no region-of-birth breakdown available for this dataset).
+      - name: value
+        description: Count of residents commuting out of their home municipality.
+        tests:
+          - not_null

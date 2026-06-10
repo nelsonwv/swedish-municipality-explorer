@@ -28,6 +28,7 @@ employment gap between total and foreign-born populations).
 | `employment_gap` | FLOAT | `employment_rate_total - employment_rate_foreign_born` (percentage points) |
 | `pct_post_secondary` | FLOAT | Share of population with post-secondary education (%) (`region_of_birth = 'total'`) |
 | `out_commute_rate` | FLOAT | Out-commuting rate (%) |
+| `population_category` | VARCHAR | One of `'small'`, `'medium'`, `'large'`, based on `population_total` thresholds (`< 20000` / `< 100000` / else) |
 | `year` | INTEGER | Snapshot year (`2021`) |
 
 ## Notes
@@ -35,6 +36,10 @@ employment gap between total and foreign-born populations).
 - One row per `municipality_code` per `year`.
 - `county_code` is derived as the first two digits of `municipality_code`
   (e.g. `"0114"` → county `"01"` = Stockholm county).
+- **2026-06-10 (Agent 3):** Added `population_category` (additive column,
+  not in the original contract) so that `dim_municipality` in `MARTS` can
+  derive it without re-implementing the population thresholds. See
+  `docs/agents/agent3_dbt.md` status log.
 - Region-of-birth-specific cuts beyond `employment_rate_foreign_born` /
   `employment_gap` are handled in the `MARTS` layer
   (`fct_opportunity_scores`), not here.
