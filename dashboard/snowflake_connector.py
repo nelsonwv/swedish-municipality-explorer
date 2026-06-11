@@ -28,15 +28,29 @@ REGION_OF_BIRTH_MAP = {
 
 
 def _get_connection():
-    return snowflake.connector.connect(
-        account=os.environ["SNOWFLAKE_ACCOUNT"],
-        user=os.environ["SNOWFLAKE_USER"],
-        password=os.environ["SNOWFLAKE_PASSWORD"],
-        role=os.environ["SNOWFLAKE_ROLE"],
-        warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
-        database=os.environ["SNOWFLAKE_DATABASE"],
-        schema="MARTS",
-    )
+    try:
+        # Streamlit Cloud: credentials from .streamlit/secrets.toml
+        cfg = st.secrets["snowflake"]
+        return snowflake.connector.connect(
+            account=cfg["account"],
+            user=cfg["user"],
+            password=cfg["password"],
+            role=cfg["role"],
+            warehouse=cfg["warehouse"],
+            database=cfg["database"],
+            schema=cfg["schema"],
+        )
+    except (KeyError, FileNotFoundError):
+        # Local development: credentials from .env
+        return snowflake.connector.connect(
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            user=os.getenv("SNOWFLAKE_USER"),
+            password=os.getenv("SNOWFLAKE_PASSWORD"),
+            role=os.getenv("SNOWFLAKE_ROLE"),
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
+            schema="MARTS",
+        )
 
 
 @st.cache_data(ttl=3600)

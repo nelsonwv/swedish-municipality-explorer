@@ -1,6 +1,10 @@
 # Environment variables
 .env
 
+# Streamlit secrets (real credentials — keep secrets.toml.template instead)
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+
 # Python virtual environment
 venv/
 
