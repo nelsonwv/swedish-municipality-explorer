@@ -127,3 +127,83 @@ no additional fields were needed from Agent 3.
 
 **Status:** Dashboard is complete and verified locally at
 `http://localhost:8501`. Ready for **Agent 5 (Deployment)**.
+
+### 2026-06-11 — Follow-up pass: map tab, grouped bars, presets, auto-normalize
+
+**Weight auto-normalization:** `calculate_opportunity_index()` now divides
+the weighted sum by `sum(weights.values())` instead of a hardcoded `/100`,
+so the Opportunity Index stays on a 0-100 scale for any combination of
+slider values (including all-zero, guarded to return 0). The sidebar
+"Total weight" indicator was simplified to "Weights sum to X%
+(auto-normalized)", always rendered in the accent color
+(`#8B7355`) — the red "should equal 100%" warning state was removed
+entirely since it's no longer a validity concern.
+
+**Compare tab: radar chart -> grouped bar chart.** Replaced the
+`go.Scatterpolar` radar chart with a `go.Bar` grouped bar chart
+(`barmode="group"`): x-axis = Employment/Income/Education/Mobility, one
+bar series per selected municipality (up to 5, using the existing
+`trace_colors` design-system palette), with `textposition="outside"` data
+labels showing each score to one decimal. The Opportunity Index (which
+isn't one of the four bar categories) is now shown as a row of
+`st.metric` cards above the chart, one per selected municipality. The old
+`.compare-table` HTML table (and its now-unused `.compare-table` CSS and
+`hex_to_rgba()` helper, which existed only for the radar fill colors) were
+removed as redundant.
+
+**New "Map" tab (3rd of 4 tabs):** Added `px.choropleth_mapbox` showing
+the Opportunity Index for all 290 municipalities (unaffected by the
+Rankings tab's size/county/top-N filters, but does respond to the
+Population group and weight controls). Color scale is
+`[COLOR_NEGATIVE, COLOR_POSITIVE]` (`#C17A5A` -> `#5B8A6F`) over a fixed
+`range_color=(0, 100)`, `mapbox_style="carto-positron"` (no token
+required), centered on `lat=62.5, lon=16.5` at `zoom=3.5`. Hover shows the
+municipality name, county, Opportunity Index, and all four component
+scores (`hover_data` with `:.1f` formatting and relabeled via `labels=`).
+
+**GeoJSON source:** Tried the 3 sources in the brief in order. Source 1
+(`https://raw.githubusercontent.com/okfse/sweden-geojson/...`) had the
+right repo but the brief's exact filename (`swedish_regions.geojson`) is
+21 *län* (county) polygons, not municipalities. The same repo's
+`swedish_municipalities.geojson` (290 features, `properties.id` = 4-digit
+SCB municipality code, e.g. `"0114"`) was the right file and is what's
+used. Sources 2/3 were not needed. Saved to
+`dashboard/data/sweden_municipalities.geojson` (818 KB, committed) and
+loaded via a new `@st.cache_data`-wrapped `load_municipality_geojson()`.
+
+**GeoJSON code matching:** Verified by querying
+`MARTS.dim_municipality.municipality_code` directly against the GeoJSON's
+290 `properties.id` values — **exact 1:1 match**, no remapping or
+placeholder needed (`px.choropleth_mapbox(..., locations="municipality_code",
+featureidkey="properties.id")`).
+
+**4 weight presets:** Added "Balanced" / "Job seeker" / "Quality of life"
+/ "Family focused" buttons in a 2x2 grid above the weight sliders
+(picking up the existing global `.stButton` accent-color styling — no
+extra CSS needed). Each button's `on_click` calls
+`apply_weight_preset(preset_values)`, which writes directly into
+`st.session_state["{dim}_weight"]`; the four sliders are now
+`key`-bound (`employment_weight` / `income_weight` / `education_weight` /
+`mobility_weight`) with `WEIGHT_DEFAULTS` seeded into session state via
+`setdefault` on first run, so presets, manual slider drags, and reruns all
+stay in sync.
+
+**Local verification (Playwright):** Re-ran `streamlit run dashboard/app.py`
+and checked all 4 tabs at `http://localhost:8502` (8501 was busy). (1)
+Rankings: preset buttons render in the sidebar above the sliders;
+clicking "Job seeker" set sliders to 50/30/15/5, updated "Weights sum to
+100% (auto-normalized)" in accent color, and re-ranked the table (Lomma ->
+#1, score 78.6). (2) Compare: grouped bar chart renders for the default
+3-municipality selection with per-bar data labels and a legend, with
+Opportunity Index metric cards above; no leftover comparison table. (3)
+Map: choropleth renders all 290 municipalities over `carto-positron`,
+centered on Sweden; inspected the live Plotly trace in-browser and
+confirmed `hovertemplate` includes county + all 4 component scores,
+`coloraxis.colorscale` is `[[0,"#C17A5A"],[1,"#5B8A6F"]]` with
+`cmin=0/cmax=100`, and `mapbox.center/zoom/style` match the spec exactly.
+(4) About: methodology code block and weight-slider description updated
+to describe auto-normalization. Zero console errors/warnings.
+
+**Status:** v2 changes complete and verified locally. Still ready for
+**Agent 5 (Deployment)** — no new environment variables or dependencies
+were introduced (GeoJSON is a static file bundled in `dashboard/data/`).

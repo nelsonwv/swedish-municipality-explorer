@@ -7,11 +7,17 @@ component scores, computed here in Python so the sidebar weight sliders
 can recompute it dynamically.
 """
 
+import json
+from pathlib import Path
+
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
 from snowflake_connector import REGION_OF_BIRTH_MAP, get_opportunity_data
+
+GEOJSON_PATH = Path(__file__).resolve().parent / "data" / "sweden_municipalities.geojson"
 
 # ---------------------------------------------------------------------------
 # Design system
@@ -33,7 +39,21 @@ COMPONENT_LABELS = {
     "mobility_score": "Mobility",
 }
 
+WEIGHT_DEFAULTS = {"employment": 35, "income": 25, "education": 25, "mobility": 15}
+
+WEIGHT_PRESETS = {
+    "Balanced": {"employment": 25, "income": 25, "education": 25, "mobility": 25},
+    "Job seeker": {"employment": 50, "income": 30, "education": 15, "mobility": 5},
+    "Quality of life": {"employment": 20, "income": 20, "education": 35, "mobility": 25},
+    "Family focused": {"employment": 25, "income": 35, "education": 30, "mobility": 10},
+}
+
 GITHUB_URL = "https://github.com/nelsonwv/swedish-municipality-explorer"
+
+
+def apply_weight_preset(preset_values: dict):
+    for dim, value in preset_values.items():
+        st.session_state[f"{dim}_weight"] = value
 
 
 def inject_css():
@@ -155,7 +175,7 @@ def inject_css():
         }}
 
         /* Custom tables */
-        .ranking-table, .compare-table {{
+        .ranking-table {{
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
@@ -224,29 +244,6 @@ def inject_css():
             font-variant-numeric: tabular-nums;
             min-width: 28px;
         }}
-
-        .compare-table th, .compare-table td {{
-            padding: 8px 12px;
-            border: 1px solid {COLOR_BORDER};
-            text-align: center;
-            font-variant-numeric: tabular-nums;
-        }}
-        .compare-table th {{
-            background-color: {COLOR_SURFACE};
-            color: {COLOR_TEXT_SECONDARY};
-            font-weight: 600;
-        }}
-        .compare-table td:first-child, .compare-table th:first-child {{
-            text-align: left;
-            font-weight: 600;
-            color: {COLOR_TEXT_PRIMARY};
-            background-color: {COLOR_SURFACE};
-            white-space: nowrap;
-        }}
-        .compare-table .score-cell {{
-            color: #FFFFFF;
-            font-weight: 700;
-        }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -261,11 +258,6 @@ def inject_css():
 def hex_to_rgb(hex_color: str) -> tuple:
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
-
-
-def hex_to_rgba(hex_color: str, alpha: float) -> str:
-    r, g, b = hex_to_rgb(hex_color)
-    return f"rgba({r},{g},{b},{alpha})"
 
 
 def score_color(value: float) -> str:
@@ -288,14 +280,28 @@ def render_bar(value: float) -> str:
 
 
 def calculate_opportunity_index(df: pd.DataFrame, weights: dict) -> pd.Series:
-    """Weighted combination of the four MARTS component scores (each 0-100)."""
+    """Weighted combination of the four MARTS component scores (each 0-100).
+
+    Weights are auto-normalized by their sum, so the index stays on a
+    0-100 scale regardless of the slider values.
+    """
+    total = sum(weights.values())
+    if total == 0:
+        return pd.Series(0.0, index=df.index)
     score = (
         df["employment_score"] * weights["employment"]
         + df["income_score"] * weights["income"]
         + df["education_score"] * weights["education"]
         + df["mobility_score"] * weights["mobility"]
-    ) / 100
+    ) / total
     return score
+
+
+@st.cache_data
+def load_municipality_geojson() -> dict:
+    """Sweden municipality boundaries keyed by 4-digit municipality_code (properties.id)."""
+    with open(GEOJSON_PATH) as f:
+        return json.load(f)
 
 
 # ---------------------------------------------------------------------------
@@ -337,24 +343,31 @@ region_of_birth = REGION_OF_BIRTH_MAP[region_label]
 
 st.sidebar.markdown("##### Opportunity Index weights")
 
-employment_weight = st.sidebar.slider("Employment weight (%)", 0, 100, 35, step=5)
-income_weight = st.sidebar.slider("Income weight (%)", 0, 100, 25, step=5)
-education_weight = st.sidebar.slider("Education weight (%)", 0, 100, 25, step=5)
-mobility_weight = st.sidebar.slider("Mobility weight (%)", 0, 100, 15, step=5)
+for _dim, _default in WEIGHT_DEFAULTS.items():
+    st.session_state.setdefault(f"{_dim}_weight", _default)
+
+preset_cols = st.sidebar.columns(2) + st.sidebar.columns(2)
+for col, (preset_name, preset_values) in zip(preset_cols, WEIGHT_PRESETS.items()):
+    col.button(
+        preset_name,
+        key=f"preset_{preset_name}",
+        use_container_width=True,
+        on_click=apply_weight_preset,
+        args=(preset_values,),
+    )
+
+employment_weight = st.sidebar.slider("Employment weight (%)", 0, 100, step=5, key="employment_weight")
+income_weight = st.sidebar.slider("Income weight (%)", 0, 100, step=5, key="income_weight")
+education_weight = st.sidebar.slider("Education weight (%)", 0, 100, step=5, key="education_weight")
+mobility_weight = st.sidebar.slider("Mobility weight (%)", 0, 100, step=5, key="mobility_weight")
 
 total_weight = employment_weight + income_weight + education_weight + mobility_weight
 
-if total_weight == 100:
-    st.sidebar.markdown(
-        f'<p style="color:{COLOR_POSITIVE}; font-weight:600;">Total weight: {total_weight}%</p>',
-        unsafe_allow_html=True,
-    )
-else:
-    st.sidebar.markdown(
-        f'<p style="color:{COLOR_NEGATIVE}; font-weight:600;">'
-        f"Total weight: {total_weight}% (should equal 100%)</p>",
-        unsafe_allow_html=True,
-    )
+st.sidebar.markdown(
+    f'<p style="color:{COLOR_ACCENT}; font-weight:600;">'
+    f"Weights sum to {total_weight}% (auto-normalized)</p>",
+    unsafe_allow_html=True,
+)
 
 weights = {
     "employment": employment_weight,
@@ -414,7 +427,7 @@ ranked = filtered.head(top_n)
 # Tabs
 # ---------------------------------------------------------------------------
 
-tab_rankings, tab_compare, tab_about = st.tabs(["Rankings", "Compare", "About"])
+tab_rankings, tab_compare, tab_map, tab_about = st.tabs(["Rankings", "Compare", "Map", "About"])
 
 # --- Tab 1: Rankings -------------------------------------------------------
 
@@ -494,58 +507,87 @@ with tab_compare:
 
         trace_colors = [COLOR_ACCENT, COLOR_POSITIVE, COLOR_NEGATIVE, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY]
         categories = list(COMPONENT_LABELS.values())
+        component_cols = list(COMPONENT_LABELS.keys())
+
+        index_cols = st.columns(len(compare_df))
+        for col, row in zip(index_cols, compare_df.itertuples()):
+            col.metric(row.municipality_name, f"{row.opportunity_index:.1f}", help="Opportunity Index")
 
         fig = go.Figure()
         for i, row in enumerate(compare_df.itertuples()):
-            values = [row.employment_score, row.income_score, row.education_score, row.mobility_score]
+            values = [getattr(row, col_name) for col_name in component_cols]
             color = trace_colors[i % len(trace_colors)]
             fig.add_trace(
-                go.Scatterpolar(
-                    r=values + values[:1],
-                    theta=categories + categories[:1],
-                    fill="toself",
+                go.Bar(
+                    x=categories,
+                    y=values,
                     name=row.municipality_name,
-                    line=dict(color=color, width=2),
-                    fillcolor=hex_to_rgba(color, 0.15),
+                    marker_color=color,
+                    text=[f"{v:.1f}" for v in values],
+                    textposition="outside",
                 )
             )
 
         fig.update_layout(
-            polar=dict(
-                bgcolor=COLOR_SURFACE,
-                radialaxis=dict(visible=True, range=[0, 100], gridcolor=COLOR_BORDER, linecolor=COLOR_BORDER),
-                angularaxis=dict(gridcolor=COLOR_BORDER, linecolor=COLOR_BORDER),
-            ),
+            barmode="group",
+            yaxis=dict(title="Score (0-100)", range=[0, 112], gridcolor=COLOR_BORDER, linecolor=COLOR_BORDER),
+            xaxis=dict(linecolor=COLOR_BORDER),
+            plot_bgcolor=COLOR_SURFACE,
             paper_bgcolor=COLOR_BACKGROUND,
             font=dict(color=COLOR_TEXT_PRIMARY, family="-apple-system, Helvetica, Arial, sans-serif"),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.15, x=0.5, xanchor="center"),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.25, x=0.5, xanchor="center"),
             margin=dict(t=30, b=30, l=40, r=40),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("##### Component scores")
+# --- Tab 3: Map ----------------------------------------------------------------
 
-        metric_rows = [("Opportunity Index", "opportunity_index")]
-        for col, label in COMPONENT_LABELS.items():
-            metric_rows.append((label, col))
+with tab_map:
+    st.markdown("##### Opportunity Index across Sweden")
 
-        header_html = "<th></th>" + "".join(f"<th>{name}</th>" for name in compare_df["municipality_name"])
+    geojson = load_municipality_geojson()
 
-        body_rows = []
-        for label, col in metric_rows:
-            cells = [f"<td>{label}</td>"]
-            for value in compare_df[col]:
-                bg = score_color(value)
-                cells.append(f'<td class="score-cell" style="background-color:{bg};">{value:.1f}</td>')
-            body_rows.append(f"<tr>{''.join(cells)}</tr>")
+    fig = px.choropleth_mapbox(
+        data,
+        geojson=geojson,
+        locations="municipality_code",
+        featureidkey="properties.id",
+        color="opportunity_index",
+        color_continuous_scale=[COLOR_NEGATIVE, COLOR_POSITIVE],
+        range_color=(0, 100),
+        mapbox_style="carto-positron",
+        center={"lat": 62.5, "lon": 16.5},
+        zoom=3.5,
+        opacity=0.75,
+        hover_name="municipality_name",
+        hover_data={
+            "municipality_code": False,
+            "county_name": True,
+            "opportunity_index": ":.1f",
+            "employment_score": ":.1f",
+            "income_score": ":.1f",
+            "education_score": ":.1f",
+            "mobility_score": ":.1f",
+        },
+        labels={
+            "county_name": "County",
+            "opportunity_index": "Opportunity Index",
+            "employment_score": "Employment",
+            "income_score": "Income",
+            "education_score": "Education",
+            "mobility_score": "Mobility",
+        },
+    )
+    fig.update_layout(
+        height=650,
+        margin=dict(t=10, b=10, l=10, r=10),
+        paper_bgcolor=COLOR_BACKGROUND,
+        font=dict(color=COLOR_TEXT_PRIMARY, family="-apple-system, Helvetica, Arial, sans-serif"),
+        coloraxis_colorbar=dict(title="Opportunity<br>Index"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-        compare_table_html = (
-            f'<table class="compare-table"><thead><tr>{header_html}</tr></thead>'
-            f'<tbody>{"".join(body_rows)}</tbody></table>'
-        )
-        st.markdown(compare_table_html, unsafe_allow_html=True)
-
-# --- Tab 3: About ------------------------------------------------------------
+# --- Tab 4: About ------------------------------------------------------------
 
 with tab_about:
     st.markdown("##### About this project")
@@ -595,18 +637,21 @@ All data reflects the **2021** snapshot year.
 
 ```python
 def calculate_opportunity_index(df, weights):
+    total = sum(weights.values())
     score = (
         df['employment_score'] * weights['employment'] +
         df['income_score'] * weights['income'] +
         df['education_score'] * weights['education'] +
         df['mobility_score'] * weights['mobility']
-    ) / 100
+    ) / total
     return score
 ```
 
 Adjust the weight sliders in the sidebar to re-prioritize the four
-dimensions. When the weights sum to 100%, the Opportunity Index stays on
-the same 0–100 scale as the component scores.
+dimensions, or use a preset button for a common profile. Weights are
+auto-normalized by their sum, so the Opportunity Index always stays on
+the same 0–100 scale as the component scores, regardless of the slider
+values.
 """
     )
 
