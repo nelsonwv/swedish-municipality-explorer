@@ -23,3 +23,6 @@ dbt_project/logs/
 
 # macOS
 .DS_Store
+
+# Office lock files
+~$*
