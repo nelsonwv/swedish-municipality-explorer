@@ -32,6 +32,8 @@ SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
 
 GITHUB_URL = "https://github.com/nelsonwv/swedish-municipality-explorer"
+LIVE_URL = "https://swedish-municipality-explorer.streamlit.app"
+LINKEDIN_URL = "linkedin.com/in/waldeannelson/"
 
 
 # ---------------------------------------------------------------------------
@@ -248,28 +250,55 @@ SLIDE1_BODY = (
 def build_slide1(prs):
     slide = add_slide(prs)
 
-    box = add_textbox(slide, Inches(0.6), Inches(0.75), Inches(12.13), Inches(0.9))
-    add_paragraph(box.text_frame, "Swedish Municipality Explorer", size=40, color=ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
+    box = add_textbox(slide, Inches(0.6), Inches(0.45), Inches(12.13), Inches(0.85))
+    add_paragraph(box.text_frame, "Swedish Municipality Explorer", size=36, color=ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
 
-    box = add_textbox(slide, Inches(0.6), Inches(1.65), Inches(12.13), Inches(0.5))
+    box = add_textbox(slide, Inches(0.6), Inches(1.25), Inches(12.13), Inches(0.45))
     add_paragraph(
         box.text_frame,
         "A data engineering portfolio project by Waldean Nelson",
-        size=18,
+        size=15,
         color=TEXT_SECONDARY,
         italic=True,
         align=PP_ALIGN.CENTER,
         first=True,
     )
 
-    add_bar(slide, Inches(5.67), Inches(2.4), Inches(2.0), Pt(2), color=ACCENT)
+    add_bar(slide, Inches(5.67), Inches(1.75), Inches(2.0), Pt(2), color=ACCENT)
 
-    add_bar(slide, Inches(1.8), Inches(2.95), Inches(0.06), Inches(3.4), color=ACCENT)
+    # Left column: personal hook narrative
+    add_bar(slide, Inches(0.6), Inches(2.05), Inches(0.06), Inches(4.55), color=ACCENT)
 
-    box = add_textbox(slide, Inches(2.1), Inches(2.95), Inches(9.43), Inches(3.4))
+    box = add_textbox(slide, Inches(0.9), Inches(2.05), Inches(5.6), Inches(4.55))
     tf = box.text_frame
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    add_paragraph(tf, SLIDE1_BODY, size=18, color=TEXT, line_spacing=1.35, first=True)
+    add_paragraph(tf, SLIDE1_BODY, size=16, color=TEXT, line_spacing=1.3, first=True)
+
+    # Right column: choropleth map screenshot placeholder + caption
+    box, tf = add_box(slide, Inches(6.93), Inches(2.05), Inches(5.8), Inches(3.6), fill=SURFACE)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    add_paragraph(
+        tf,
+        "[INSERT CHOROPLETH MAP SCREENSHOT]",
+        size=14,
+        color=TEXT_SECONDARY,
+        italic=True,
+        align=PP_ALIGN.CENTER,
+        first=True,
+    )
+
+    box = add_textbox(slide, Inches(6.93), Inches(5.75), Inches(5.8), Inches(0.85))
+    add_paragraph(
+        box.text_frame,
+        "Interactive choropleth map of all 290 Swedish municipalities colored by "
+        "Opportunity Index score",
+        size=12,
+        color=TEXT_SECONDARY,
+        italic=True,
+        align=PP_ALIGN.CENTER,
+        line_spacing=1.2,
+        first=True,
+    )
 
     add_footer(slide, 1)
 
@@ -321,22 +350,24 @@ def build_slide2(prs):
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
     add_paragraph(
         tf,
-        "[INSERT DASHBOARD SCREENSHOT HERE]",
+        "[INSERT SCREENSHOT: Rankings tab with Born abroad filter]",
         size=14,
         color=TEXT_SECONDARY,
         italic=True,
         align=PP_ALIGN.CENTER,
+        line_spacing=1.2,
         first=True,
     )
 
-    box = add_textbox(slide, Inches(8.1), Inches(4.85), Inches(4.63), Inches(0.5))
+    box = add_textbox(slide, Inches(8.1), Inches(4.85), Inches(4.63), Inches(0.6))
     add_paragraph(
         box.text_frame,
-        "Live at: [STREAMLIT_URL] — deploy first, add URL after",
-        size=12,
+        f"Live at: {LIVE_URL}",
+        size=11,
         color=ACCENT,
         italic=True,
         align=PP_ALIGN.CENTER,
+        line_spacing=1.15,
         first=True,
     )
 
@@ -364,16 +395,16 @@ def build_slide3(prs):
     add_table(
         slide,
         Inches(0.6),
-        Inches(1.3),
+        Inches(1.2),
         Inches(12.13),
-        Inches(3.6),
+        Inches(3.3),
         SLIDE3_HEADERS,
         SLIDE3_ROWS,
         col_widths=[Inches(1.6), Inches(2.4), Inches(5.83), Inches(2.3)],
-        font_size=12,
+        font_size=11,
     )
 
-    box = add_textbox(slide, Inches(0.6), Inches(5.05), Inches(12.13), Inches(0.5))
+    box = add_textbox(slide, Inches(0.6), Inches(4.6), Inches(12.13), Inches(0.4))
     add_paragraph(
         box.text_frame,
         "All data sourced via SCB PxWebApi v2. Snapshot year: 2021. Municipality code "
@@ -384,8 +415,8 @@ def build_slide3(prs):
         first=True,
     )
 
-    add_bar(slide, Inches(0.6), Inches(5.7), Inches(0.06), Inches(1.0), color=ACCENT)
-    box = add_textbox(slide, Inches(0.85), Inches(5.7), Inches(11.88), Inches(1.0))
+    add_bar(slide, Inches(0.6), Inches(5.05), Inches(0.06), Inches(0.85), color=ACCENT)
+    box = add_textbox(slide, Inches(0.85), Inches(5.05), Inches(11.88), Inches(0.85))
     tf = box.text_frame
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
     add_paragraph(
@@ -393,10 +424,27 @@ def build_slide3(prs):
         "Note: Employment is the only table with a region_of_birth dimension (total / "
         "born_in_sweden / born_abroad) — it powers the Population group filter and "
         "the integration-gap analysis on Slide 7.",
-        size=13,
+        size=12,
         color=ACCENT,
         bold=True,
-        line_spacing=1.2,
+        line_spacing=1.15,
+        first=True,
+    )
+
+    add_bar(slide, Inches(0.6), Inches(6.0), Inches(0.06), Inches(0.95), color=BORDER)
+    box = add_textbox(slide, Inches(0.85), Inches(6.0), Inches(11.88), Inches(0.95))
+    tf = box.text_frame
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    add_paragraph(
+        tf,
+        "Note: Employment path was replaced from LE0105Sysselsattn02N to "
+        "RamsForvInt04N, and Education path was replaced from UtbSUNBefN to "
+        "UtbBefRegionR after original endpoints returned 400 errors — documented "
+        "in docs/agents/agent2_ingestor.md",
+        size=11,
+        color=TEXT_SECONDARY,
+        italic=True,
+        line_spacing=1.15,
         first=True,
     )
 
@@ -621,13 +669,12 @@ SLIDE6_FORMULA = (
     ") / sum(all weights)"
 )
 
-SLIDE6_PARAGRAPH = (
-    "Each component score is a percentile: 0 is the lowest value among all 290 "
-    "municipalities, 100 is the highest — so the Opportunity Index lands on the "
-    "same 0–100 scale. No municipality dominates every dimension: Danderyd scores "
-    "100 on income (the highest median in Sweden) but only 56 on employment, "
-    "roughly mid-pack within its population group. The Opportunity Index captures "
-    "that trade-off in a single, comparable number."
+SLIDE6_CALLOUT = (
+    "Think of each score as a percentile — a score of 75 means this municipality "
+    "outperforms 75% of Sweden's 290 municipalities on that dimension. Danderyd "
+    "scores 100 on income (highest median in Sweden) but only 56 on employment — "
+    "its large wealthy retired population aren't in the workforce. The index "
+    "captures that trade-off in one number."
 )
 
 
@@ -668,10 +715,11 @@ def build_slide6(prs):
     for i, line in enumerate(SLIDE6_FORMULA.split("\n")):
         add_paragraph(tf, line, size=13, color=TEXT, font="Consolas", first=(i == 0), space_after=0, line_spacing=1.15)
 
-    box = add_textbox(slide, Inches(0.6), Inches(5.85), Inches(12.13), Inches(1.1))
-    tf = box.text_frame
-    add_paragraph(tf, "What 0–100 means", size=13, color=ACCENT, bold=True, first=True, space_after=2)
-    add_paragraph(tf, SLIDE6_PARAGRAPH, size=12, color=TEXT, line_spacing=1.2)
+    box, tf = add_box(slide, Inches(0.6), Inches(5.85), Inches(12.13), Inches(1.1), fill=ACCENT, line_color=ACCENT)
+    tf.margin_left = Inches(0.25)
+    tf.margin_right = Inches(0.25)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    add_paragraph(tf, SLIDE6_CALLOUT, size=13, color=WHITE, line_spacing=1.25, first=True)
 
     add_footer(slide, 6)
 
@@ -681,9 +729,9 @@ def build_slide6(prs):
 # ---------------------------------------------------------------------------
 
 SLIDE7_OPENING = (
-    "Switching the Population group filter from “All residents” to “Born "
-    "abroad” barely moves most municipalities — but for a handful, the gap "
-    "tells a real story."
+    "Switch the Population group filter from 'All residents' to 'Born abroad' "
+    "and watch the rankings reshuffle — this is the moment the dashboard was "
+    "built for."
 )
 
 SLIDE7_HEADERS = ["Municipality", "Born in Sweden rank", "Born abroad rank", "Change"]
@@ -699,11 +747,10 @@ SLIDE7_ROWS = [
 SLIDE7_HIGHLIGHT = {0: POSITIVE, 1: POSITIVE, 5: NEGATIVE, 6: NEGATIVE}
 
 SLIDE7_BOTTOM = (
-    "For the large majority of Sweden's 290 municipalities, the overall rank and "
-    "the born-abroad rank are nearly identical — meaning opportunity, as measured "
-    "here, is largely independent of where a resident was born. The exceptions "
-    "above are exactly where this dashboard adds value: invisible in national "
-    "averages, visible only at the municipality level."
+    "For the large majority of Sweden's 290 municipalities, overall rank and "
+    "born-abroad rank are nearly identical — meaning opportunity is largely "
+    "independent of birthplace. The exceptions are where this dashboard adds "
+    "value: invisible in national averages, visible only at municipality level."
 )
 
 
@@ -773,8 +820,9 @@ def build_slide7(prs):
         margins=0.14,
     )
 
-    box = add_textbox(slide, Inches(0.6), Inches(6.35), Inches(12.13), Inches(0.7))
-    add_paragraph(box.text_frame, SLIDE7_BOTTOM, size=11, color=TEXT_SECONDARY, italic=True, align=PP_ALIGN.CENTER, line_spacing=1.2, first=True)
+    box, tf = add_box(slide, Inches(0.6), Inches(6.35), Inches(12.13), Inches(0.7), fill=SURFACE)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    add_paragraph(tf, SLIDE7_BOTTOM, size=11, color=TEXT, align=PP_ALIGN.CENTER, line_spacing=1.2, first=True)
 
     add_footer(slide, 7)
 
@@ -847,7 +895,7 @@ def build_slide8(prs):
         closing_h,
         entries=[
             ("Live Dashboard", 13, ACCENT, True),
-            ("[STREAMLIT_URL — add after deployment]", 12, TEXT, False),
+            (LIVE_URL, 12, TEXT, False),
         ],
         fill=SURFACE,
         align=PP_ALIGN.CENTER,
@@ -860,7 +908,7 @@ def build_slide8(prs):
         card_w,
         closing_h,
         entries=[
-            ("Source Code", 13, ACCENT, True),
+            ("GitHub", 13, ACCENT, True),
             (GITHUB_URL, 12, TEXT, False),
         ],
         fill=SURFACE,
@@ -875,7 +923,7 @@ def build_slide8(prs):
         closing_h,
         entries=[
             ("Connect", 13, ACCENT, True),
-            ("linkedin.com/in/[handle]", 12, TEXT, False),
+            (LINKEDIN_URL, 12, TEXT, False),
         ],
         fill=SURFACE,
         align=PP_ALIGN.CENTER,
